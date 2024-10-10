@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Grid</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<style>
+		/* Set the size of the map */
+		#map {
+			height: 600px;
+			width: 90%;
+		}
+	</style>
+</head>
+
+<body>
+<h1>Grid</h1>
+
+<script>
+
+let map;
+let mylat;
+let mylon;
+
+function numberToColor(num) {
+    // Ensure the number is between 1 and 1000
+	let numMinMax = Math.min(Math.max(0, num), 1000)
+
+    // Normalize the number to a scale between 0 and 1
+    let normalizedNum = (numMinMax - 1) / 999;
+
+    // Interpolate the red and green channels
+    let red = Math.round(255 * (1 - normalizedNum));   // Red decreases as num increases
+    let green = Math.round(255 * normalizedNum);       // Green increases as num increases
+
+    // Return the color in hexadecimal format
+    return `rgb(${red}, ${green}, 0)`; // Blue is always 0
+}
+
+function initMap()
+{
+	const defaultLocation = { lat: -33.8, lng: 151.200 }; // Default location (Sydney)
+	map = new google.maps.Map(document.getElementById("map"), {
+		center: defaultLocation, zoom: 16});
+}
+
+// Helper function to convert degrees to radians
+function toRadians(degrees)
+{
+    return degrees * Math.PI / 180;
+}
+
+// Helper function to convert radians to degrees
+function toDegrees(radians)
+{
+    return radians * 180 / Math.PI;
+}
+
+// Function to calculate distance between two points (Haversine formula)
+function calculateDistance(lat1, lon1, lat2, lon2)
+{
+
+    const R = 6371; // Radius of the Earth in km
+    const dLat = toRadians(lat2 - lat1);
+    const dLon = toRadians(lon2 - lon1);
+    
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    
+    const distance = R * c; // Distance in kilometers
+    return distance;
+}
+
+function createPolygon(lat, lon, color)
+{
+	const coords = [
+		{ lat: lat + 0.0005, lng: lon -0.0005 }, // Top left
+		{ lat: lat + 0.0005, lng: lon +0.0005 }, // Top right
+		{ lat: lat - 0.0005, lng: lon + 0.0005 }, // Bottom right
+		{ lat: lat - 0.0005, lng: lon - 0.0005 }
+	];
+
+	poly = {
+		paths: coords,
+		strokeColor: "#000000",   // Border color
+        strokeOpacity: 0.8,       // Border opacity
+        strokeWeight: 2,          // Border thickness
+        fillColor: color,     // Fill color
+        fillOpacity: 0.25,        // Fill opacity
+	}
+
+	return poly;
+}
+
+function drawPolygon(lat, lon)
+{
+	let roundedLat = Math.round(mylat * 1000) / 1000
+	let roundedLon = Math.round(mylon * 1000) / 1000
+
+	calcDist = calculateDistance(roundedLat, roundedLon, lat, lon) * 1000; // metres
+	inputDistance = document.getElementById("distance").value;
+
+	if (Math.abs(calcDist - inputDistance) < 3)
+	{
+		// Print the polygon
+		color = numberToColor(calcDist);
+
+		const labelMarker = new google.maps.Marker({
+			position: {lat: lat, lng: lon},
+			map: map,
+			label: {
+				text: calcDist.toFixed(0),  // Custom text for the label
+				color: 'black',
+				fontSize: '8px',
+				fontWeight: 'bold'
+			},
+			icon: {
+				path: google.maps.SymbolPath.CIRCLE,
+				scale: 0,  // Don't display an actual marker, just the label
+			}
+		});
+
+	myPoly = new google.maps.Polygon(createPolygon(lat, lon, color));
+	myPoly.setMap(map);
+}
+
+
+}
+
+function updateDistance(input)
+{
+	newDistance = document.getElementById("distance").value;
+	drawGrid(newDistance);
+}
+
+function drawGrid(distance)
+{
+	const SPREAD = 12;
+
+	// Loop X units both NS and EW - anything over 1km, ignore
+	for (let ns = -SPREAD; ns <= SPREAD; ns++)
+	{
+		for (let ew = -SPREAD; ew <= SPREAD; ew++)
+		{
+			// Don't need the centre square
+			if (ns + ew == 0) continue;
+
+			drawPolygon(Math.round(mylat * 1000 + ns) / 1000, Math.round(mylon * 1000 + ew) / 1000)
+			drawPolygon(Math.round(mylat * 1000 + ns) / 1000, Math.round(mylon * 1000 - ew) / 1000)
+			drawPolygon(Math.round(mylat * 1000 - ns) / 1000, Math.round(mylon * 1000 + ew) / 1000)
+			drawPolygon(Math.round(mylat * 1000 - ns) / 1000, Math.round(mylon * 1000 - ew) / 1000)			
+		}
+	}
+}
+
+const options = {
+  enableHighAccuracy: true,
+  timeout: 3000,
+};
+
+const successCallback = (position) => {
+	mylat = position.coords.latitude;
+	mylon = position.coords.longitude;
+
+	document.getElementById("mylat").value = mylat;
+	document.getElementById("mylon").value = mylon;
+
+	const newLocation = { lat: mylat, lng: mylon };
+	map.setCenter(newLocation);
+
+	// Add a marker at your location
+	new google.maps.Marker({position: newLocation, map: map});
+};
+
+const errorCallback = (error) => {
+  alert("Error: " + error.code + " " + error.message);
+};
+
+if (navigator.geolocation) // Ask permission
+{
+	navigator.geolocation.getCurrentPosition(successCallback, errorCallback, options);
+}
+else
+{
+	alert("Permission not granted")
+}
+
+</script>
+
+<script>
+
+</script>
+
+<form>
+	
+	MY POSITION<br>
+	lat <input type="number" id="mylat" name="mylat" readonly>
+	lon <input type="number" id="mylon" name="mylon" readonly>
+	<br>
+	metres <input type="number" id="distance" name="distance" onchange="updateDistance()">
+	<br>
+
+</form>
+
+<div id="map"></div>
+
+<!-- Include the Google Maps JavaScript API -->
+<script async
+	src="https://maps.googleapis.com/maps/api/js?key=AIzaSyARJfqN_XxKMeidrnXRO0t82PsqjoX7rN8&callback=initMap">
+</script>
+
+</body>
+</html>
+
