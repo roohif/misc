@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Marine Traffic Helper</title>
+</head>
+
+<body>
+<h1>Marine Traffic Helper</h1>
+
+<script>
+
+// Helper function to convert degrees to radians
+function toRadians(degrees) {
+    return degrees * Math.PI / 180;
+}
+
+// Helper function to convert radians to degrees
+function toDegrees(radians) {
+    return radians * 180 / Math.PI;
+}
+
+// Function to calculate distance between two points (Haversine formula)
+function calculateDistance(lat1, lon1, lat2, lon2) {
+
+    const R = 6371; // Radius of the Earth in km
+    const dLat = toRadians(lat2 - lat1);
+    const dLon = toRadians(lon2 - lon1);
+    
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    
+    const distance = R * c; // Distance in kilometers
+    return distance;
+}
+
+// Function to calculate bearing between two points
+function calculateBearing(lat1, lon1, lat2, lon2) {
+
+    const dLon = toRadians(lon2 - lon1);
+    
+    const y = Math.sin(dLon) * Math.cos(toRadians(lat2));
+    const x = Math.cos(toRadians(lat1)) * Math.sin(toRadians(lat2)) -
+              Math.sin(toRadians(lat1)) * Math.cos(toRadians(lat2)) * Math.cos(dLon);
+    
+    let bearing = toDegrees(Math.atan2(y, x));
+    bearing = (bearing + 360) % 360; // Normalize to 0-360 degrees
+    return bearing;
+}
+
+function recalculate(input)
+{
+	mylat = document.getElementById("mylat").value
+	mylon = document.getElementById("mylon").value
+
+	targetlat = document.getElementById("targetlat").value
+	targetlon = document.getElementById("targetlon").value
+
+	document.getElementById("bearing").value = calculateBearing(mylat, mylon, targetlat, targetlon);
+	document.getElementById("distance").value = calculateDistance(mylat, mylon, targetlat, targetlon);
+}
+
+const options = {
+  enableHighAccuracy: true,
+  timeout: 3000,
+};
+
+const successCallback = (position) => {
+	document.getElementById("mylat").value = position.coords.latitude;
+	document.getElementById("mylon").value = position.coords.longitude;
+};
+
+const errorCallback = (error) => {
+  alert("Error: " + error.code + " " + error.message);
+};
+
+if (navigator.geolocation) // Ask permission
+{
+	navigator.geolocation.getCurrentPosition(successCallback, errorCallback, options);
+}
+else
+{
+	alert("Permission not granted")
+}
+
+</script>
+
+<form>
+	
+	MY POSITION<br>
+	lat <input type="number" id="mylat" name="mylat" onchange="recalculate(this)"><br>
+	lon <input type="number" id="mylon" name="mylon" onchange="recalculate(this)"><br>
+	<br>
+	SHIP POSITION<br>
+	lat <input type="number" id="targetlat" name="targetlat" onchange="recalculate(this)"><br>
+	lon <input type="number" id="targetlon" name="targetlon" onchange="recalculate(this)"><br>
+	<br>
+	HAVERSINE<br>
+	Bearing <input id="bearing" name="bearing" readonly><br>
+	Distance <input id="distance" name="distance" readonly><br>
+
+</form>
+
+</body>
+</html>
+
