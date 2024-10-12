@@ -39,7 +39,7 @@ def acceleration(a, b):
 	dX = a["X"] - b["X"]
 	dY = a["Y"] - b["Y"]
 
-	# Return a [ magnitude, polar angle ] tuple
+	# Return an X/Y acceleration tuple
 	magnitude = G * a["M"] / d**2
 	polarAngle = math.atan2(dY, dX)
 
@@ -73,7 +73,7 @@ while (True):
 
 	TotalAcc = (SunMoonAcc[0] + EarthMoonAcc[0], SunMoonAcc[1] + EarthMoonAcc[1])
 
-	# Apply this acceleration to the velocity of the EARTH
+	# Apply this acceleration to the velocity of the MOON
 	MOON["Vx"] = MOON["Vx"] + (TotalAcc[0] * interval)
 	MOON["Vy"] = MOON["Vy"] + (TotalAcc[1] * interval)
 
