@@ -14,10 +14,10 @@ EARTH = { "M": 5.972E+24, "X": 1.521E+11, "Y": 0.0, "Vx": 0.0, "Vy": 2.9295E+4 }
 # Place the moon in relation to the earth
 MOON = {
 	"M": 7.348E+22,
-	"X": EARTH["X"] + 3.844E+8,
+	"X": EARTH["X"] + 4.11E+8, # 3.844E+8,
 	"Y": 0.0, # Start when all three bodies are in perfect alignment (2D)
 	"Vx": 0.0,
-	"Vy": EARTH["Vy"] + 1.022E+3
+	"Vy": EARTH["Vy"] + 9.65E+2 # 1.022E+3
 }
 
 ################################################################################
