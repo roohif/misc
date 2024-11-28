@@ -58,8 +58,17 @@ function recalculate(input)
 	targetlat = document.getElementById("targetlat").value
 	targetlon = document.getElementById("targetlon").value
 
-	document.getElementById("bearing").value = calculateBearing(mylat, mylon, targetlat, targetlon);
-	document.getElementById("distance").value = calculateDistance(mylat, mylon, targetlat, targetlon);
+	document.getElementById("bearing").value = calculateBearing(mylat, mylon, targetlat, targetlon).toFixed(2);
+	document.getElementById("distance").value = calculateDistance(mylat, mylon, targetlat, targetlon).toFixed(2);
+}
+
+function copyLatLon(newLat, newLon)
+{
+	document.getElementById("mylat").value = newLat
+	document.getElementById("mylon").value = newLon
+
+	// recalculate the bearing and distance
+	recalculate(this)
 }
 
 const options = {
@@ -68,8 +77,8 @@ const options = {
 };
 
 const successCallback = (position) => {
-	document.getElementById("mylat").value = position.coords.latitude;
-	document.getElementById("mylon").value = position.coords.longitude;
+	document.getElementById("mylat").value = position.coords.latitude.toFixed(6);
+	document.getElementById("mylon").value = position.coords.longitude.toFixed(6);
 };
 
 const errorCallback = (error) => {
@@ -103,6 +112,33 @@ else
 
 </form>
 
+<br>
+
+<form>
+	DEE WHY [-33.756523° 151.299133° 23m]<br>
+	Horizon = 18.5 km, 20m Obstruction = 35.7 km<br>
+	Calibrate: Surf Club Roof = 21.6°<br>
+	<button type="button" onclick="copyLatLon(-33.756523, 151.299133)">DEE WHY</button>
+</form>
+
+<br>
+
+<form>
+	COLLAROY [-33.726484° 151.294951° 90m]<br>
+	Horizon = 36.6 km, 20m Obstruction = 53.8 km<br>
+	Calibrate: Copacabana Peak = 27.5°<br>
+	<button type="button" onclick="copyLatLon(-33.726484, 151.294951)">COLLAROY</button>
+</form>
+
+<br>
+
+<form>
+	GEORGES HEIGHTS [-33.831614° 151.258459° 75m]<br>
+	Horizon = 33.4 km, 20m Obstruction = 50.6 km<br>
+	Calibrate: North Head Tower = 76.6°<br>
+	Calibrate: Church Steeple = 106.5°<br>
+	<button type="button" onclick="copyLatLon(-33.831614, 151.258459)">GEORGES HEIGHTS</button>
+</form>
+
 </body>
 </html>
-
