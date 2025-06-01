@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Riksky's Elevation Angle Helper</title>
+</head>
+
+<body>
+<h1>Riksky's Elevation Angle Helper</h1>
+
+<script>
+
+function recalculate(input)
+{
+	dist_km = document.getElementById("distance").value;
+	gradient = document.getElementById("gradient").value;
+
+	refr_km = -gradient * dist_km**2 / 2;
+	refr_deg = refr_km / dist_km * 180 / Math.PI; // Small Angle Approx
+	refr_as = refr_deg * 3600
+	
+	document.getElementById("refr_m").value = (refr_km * 1000).toFixed(2);
+	document.getElementById("refr_as").value = refr_as.toFixed(2);
+	
+	delta_h_km = document.getElementById("delta_h").value / 1000;
+	angle_raw = Math.atan(delta_h_km / dist_km) * 180 / Math.PI
+	
+	document.getElementById("angle_raw").value = angle_raw.toFixed(4);
+	angle_fe = angle_raw + refr_deg;
+	
+	document.getElementById("angle_fe").value = angle_fe.toFixed(4);
+	
+	drop_km = 1/6371 * dist_km**2 / 2;
+	document.getElementById("drop_m").value = (drop_km * 1000).toFixed(2);
+	
+	angle_ge = Math.atan((delta_h_km - drop_km + refr_km) / dist_km) * 180 / Math.PI;
+	document.getElementById("angle_ge").value = angle_ge.toFixed(4);
+	
+}
+
+</script>
+
+<form>
+	
+	distance (km) <input type="number" id="distance" name="distance" value="10" onchange="recalculate(this)" style="background-color: lightgreen;"><br>
+	gradient (dn/dh) <input type="number" id="gradient" name="gradient" value="-0.000025" step="0.000001" onchange="recalculate(this)" style="background-color: lightgreen;"><br>
+	<br>
+	
+	<h3>Refraction Adjustment: R = -dn/dh x d^2/2</h3>
+	In metres: <input id="refr_m" name="refr_m" readonly><br>
+	In arc seconds: <input id="refr_as" name="refr_as" readonly><br>
+
+	<br>
+	
+	<h3>Elevation Angle</h3>
+	delta height (metres) <input type="number" id="delta_h" name="delta_h" value="100" onchange="recalculate(this)" style="background-color: lightgreen;"><br>
+	Raw Angle <input type="number" id="angle_raw" name="angle_raw" readonly><br>
+	<br>
+	FE Angle <input type="number" id="angle_fe" name="angle_fe" readonly><br>
+	<br>
+	Drop (m)<input type="number" id="drop_m" name="drop_m" readonly><br>
+	GLOB Angle <input type="number" id="angle_ge" name="angle_ge" readonly><br>
+	
+</form>
+
+<br>
+
+<script>
+    recalculate(this);
+</script>
+
+</body>
+</html>
