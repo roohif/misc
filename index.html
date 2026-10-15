@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Curvature & Refraction Calculator</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--tx:#1b1f24;--mut:#5c6670;--line:#d9dee4;--ac:#1f6feb;--hi:#e8f0fe;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14171b;--card:#1d2127;--tx:#e8ebef;--mut:#9aa4af;--line:#323a43;--ac:#5aa0ff;--hi:#22304a}}
+:root[data-theme="dark"]{--bg:#14171b;--card:#1d2127;--tx:#e8ebef;--mut:#9aa4af;--line:#323a43;--ac:#5aa0ff;--hi:#22304a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:760px;margin:0 auto;padding:16px}
+h1{font-size:20px;margin:4px 0 12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin:0 0 10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+label{display:block;font-size:13px;color:var(--mut)}
+input[type=text],input[type=number],select{width:100%;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--tx);font:inherit}
+.row{display:grid;grid-template-columns:1fr 130px;gap:10px;align-items:center;margin-bottom:12px}
+.row input[type=range]{width:100%;accent-color:var(--ac)}
+.row .lab{grid-column:1/-1;font-size:13px;color:var(--mut)}
+.ends{grid-column:1;display:flex;justify-content:space-between;font-size:11px;color:var(--mut);margin-top:-8px}
+.presets{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+button{padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--tx);font:inherit;cursor:pointer}
+button:hover{border-color:var(--ac)}
+.big{background:var(--hi);border-radius:10px;padding:12px;margin-bottom:10px}
+.big b{font-size:26px;display:block}
+table{width:100%;border-collapse:collapse}
+td{padding:6px 0;border-bottom:1px solid var(--line)}td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+.note{font-size:12px;color:var(--mut)}
+</style>
+</head>
+<body>
+<main>
+<h1>Curvature &amp; Refraction Calculator</h1>
+
+<div class="card">
+<h2>Geometry</h2>
+<div class="grid">
+<div><label>Units<select id="unit"><option value="m">Metric (m, km)</option><option value="i">Imperial (ft, mi)</option></select></label></div>
+<div><label>Observer height (<span class="hl"></span>)<input type="number" id="h1" step="any" min="0"></label></div>
+<div><label>Distance (<span class="dl"></span>)<input type="number" id="d" step="any" min="0"></label></div>
+<div><label>Target height, optional (<span class="hl"></span>)<input type="number" id="h2" step="any" min="0" placeholder="none"></label></div>
+<div><label>Earth radius (<span class="dl"></span>)<input type="number" id="R" step="any" min="1"></label></div>
+</div>
+</div>
+
+<div class="card">
+<h2>Refraction (all three are linked)</h2>
+<div class="presets">
+<button data-k="0">No refraction</button><button data-k="0.15">Typical (K = 0.15)</button><button data-k="0.25">4/3 Earth (K = 0.25)</button><button data-k="-0.3">Inverted (K = −0.3)</button>
+</div>
+
+<div class="row"><div class="lab">K factor = R<sub>Earth</sub> ÷ R<sub>light</sub> (light curvature ÷ Earth curvature). 0 = no refraction, 1 = light follows the Earth</div>
+<input type="range" id="kS" min="-0.5" max="1" step="0.001"><input type="text" id="kN" inputmode="decimal">
+<div class="ends"><span>−0.5</span><span>0</span><span>1</span></div></div>
+
+<div class="row"><div class="lab">Gradient dn/dh (per km)</div>
+<input type="range" id="gS" step="any"><input type="number" id="gN" step="any">
+<div class="ends"><span>strong downward bend</span><span></span><span>upward bend</span></div></div>
+
+<div class="row"><div class="lab">Effective Earth radius multiplier (R<sub>eff</sub> ÷ R) (slider is linear in curvature, so the right end is ∞)</div>
+<input type="range" id="eS" min="0" max="1.5" step="0.001"><input type="text" id="eN" inputmode="decimal">
+<div class="ends"><span>0.67 × R</span><span></span><span>∞ (flat)</span></div></div>
+<div class="note" id="derived"></div>
+</div>
+
+<div class="card">
+<h2>Result</h2>
+<div id="out"></div>
+</div>
+
+<p class="note">Model: light follows a circular arc, so it is equivalent to straight light over an Earth of effective radius R<sub>eff</sub> = R / (1 − K), with light curvature = −dn/dh. Hidden height is how far the line of sight, tangent to the horizon, rises above the surface at the target's distance. Distance is measured along the surface. Rays are assumed near-horizontal.</p>
+</main>
+
+<script>
+const $=id=>document.getElementById(id);
+const U={m:{h:1,hl:'m',d:1000,dl:'km'},i:{h:0.3048,hl:'ft',d:1609.344,dl:'mi'}};
+let unit='m';
+const S={h1:2,h2:null,d:20000,R:6371000,p:0.15}; // SI; p = K = light curvature / Earth curvature = R/R_light
+const clampP=p=>Math.min(1,Math.max(-0.5,p));
+const num=v=>{const x=parseFloat(v);return isFinite(x)?x:null};
+const fmt=x=>{if(!isFinite(x))return '∞';const a=Math.abs(x);if(a===0)return '0';return x.toLocaleString('en-US',a>=100?{maximumFractionDigits:0}:a>=10?{maximumFractionDigits:1}:a>=1?{maximumFractionDigits:2}:{maximumSignificantDigits:2})};
+const trim=x=>+x.toPrecision(6);
+
+function Reff(){const c=1-S.p;return c<=1e-9?Infinity:S.R/c}
+function horizon(h,Re){return isFinite(Re)?Re*Math.acos(Re/(Re+h)):Infinity}
+function hidden(h1,s,Re){
+  if(!isFinite(Re))return 0;
+  const a=horizon(h1,Re); if(s<=a)return 0;
+  const phi=(s-a)/Re; if(phi>=Math.PI/2)return Infinity;
+  return Re*(1/Math.cos(phi)-1);
+}
+
+function render(skip){
+  const u=U[unit];
+  const set=(id,v)=>{const e=$(id);if(e!==skip)e.value=v};
+  document.querySelectorAll('.hl').forEach(e=>e.textContent=u.hl);
+  document.querySelectorAll('.dl').forEach(e=>e.textContent=u.dl);
+  set('h1',trim(S.h1/u.h)); set('d',trim(S.d/u.d)); set('R',trim(S.R/u.d));
+  set('h2',S.h2==null?'':trim(S.h2/u.h));
+  // refraction controls
+  const g=-S.p/S.R*1000, c=1-S.p, Re=Reff();
+  const gS=$('gS'); gS.min=(-1000/S.R).toFixed(8); gS.max=(500/S.R).toFixed(8);
+  set('kS',S.p); set('gS',g); set('eS',S.p+0.5);
+  set('kN',trim(S.p));
+  set('gN',g.toFixed(6));
+  set('eN',isFinite(Re)?trim(Re/S.R):'∞');
+  $('derived').textContent=`R_eff = ${isFinite(Re)?fmt(Re/u.d)+' '+u.dl:'∞'} · light radius of curvature = ${Math.abs(S.p)<1e-9?'∞':fmt(S.R/S.p/u.d)+' '+u.dl}`;
+  results();
+}
+
+function results(){
+  const u=U[unit],Re=Reff(),{h1,h2,d,R}=S;
+  const hid=hidden(h1,d,Re), hidNo=hidden(h1,d,R);
+  const H=x=>isFinite(x)?fmt(x/u.h)+' '+u.hl:'—';
+  const D=x=>isFinite(x)?fmt(x/u.d)+' '+u.dl:'∞';
+  let main;
+  if(h2){
+    if(hid>=h2) main=`<b>Fully hidden</b>Target (${H(h2)}) is entirely below the line of sight; it would need to be at least ${H(hid)} tall to show its top.`;
+    else {const hp=Math.min(h2,hid);main=`<b>${H(hp)} hidden</b>${fmt(hp/h2*100)}% of the ${H(h2)} target is hidden; ${H(h2-hp)} is visible.`;}
+  } else main=`<b>${H(hid)} hidden</b>The bottom ${H(hid)} of anything at this distance is hidden (it must be taller than this to be seen at all).`;
+  const hz1=horizon(h1,Re), hz2=h2?horizon(h2,Re):0;
+  $('out').innerHTML=`<div class="big">${main}</div>
+  <table>
+  <tr><td>Hidden with no refraction (K = ∞)</td><td>${H(hidNo)}</td></tr>
+  <tr><td>Hidden with current refraction</td><td>${H(hid)}</td></tr>
+  <tr><td>Observer horizon distance</td><td>${D(hz1)}</td></tr>
+  ${h2?`<tr><td>Target horizon distance</td><td>${D(hz2)}</td></tr><tr><td>Max. distance to see target's tip</td><td>${D(hz1+hz2)}</td></tr>`:''}
+  <tr><td>Effective Earth radius</td><td>${D(Re)}</td></tr>
+  </table>`;
+}
+
+// inputs
+const bind=(id,fn)=>$(id).addEventListener('input',e=>{fn(e.target.value);render(e.target)});
+bind('h1',v=>{const x=num(v);if(x!=null)S.h1=Math.max(0,x)*U[unit].h});
+bind('d',v=>{const x=num(v);if(x!=null)S.d=Math.max(0,x)*U[unit].d});
+bind('h2',v=>{const x=num(v);S.h2=x==null?null:Math.max(0,x)*U[unit].h});
+bind('R',v=>{const x=num(v);if(x&&x>0)S.R=x*U[unit].d});
+bind('kS',v=>S.p=clampP(+v));
+bind('kN',v=>{const k=num(v);if(k!=null)S.p=clampP(k)});
+bind('gS',v=>S.p=clampP(-(+v)*S.R/1000));
+bind('gN',v=>{const g=num(v);if(g!=null)S.p=clampP(-g*S.R/1000)});
+bind('eS',v=>S.p=clampP((+v)-0.5));
+bind('eN',v=>{if(/inf|∞/i.test(v)){S.p=1;return}const r=num(v);if(r&&r>0)S.p=clampP(1-1/r)});
+$('unit').addEventListener('change',e=>{unit=e.target.value;render()});
+document.querySelectorAll('[data-k]').forEach(b=>b.addEventListener('click',()=>{
+  S.p=clampP(+b.dataset.k);render()}));
+render();
+</script>
+</body>
+</html>
